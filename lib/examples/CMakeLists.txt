@@ -25,6 +25,9 @@
 add_executable(synch_file synch_file.c)
 target_link_libraries(synch_file srsran_phy)
 
+add_executable(prach_detect prach_detect.c)
+target_link_libraries(prach_detect srsran_phy)
+
 #################################################################
 # These can be compiled without UHD or graphics support
 #################################################################
