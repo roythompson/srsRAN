@@ -552,12 +552,28 @@ int srsran_prach_gen_seqs(srsran_prach_t* p)
 
 int srsran_prach_set_cfg(srsran_prach_t* p, srsran_prach_cfg_t* cfg, uint32_t nof_prb)
 {
+    printf("Setting prach cfg, nof_prb: %d\n", nof_prb);
+    printf("is_nr: %d, config_idx: %d, root_seq_idx: %d, zero_corr_zone: %d, freq_offset: %d, num_ra_preambles: %d, hs_flag: %d, tdd_config: (%d, %d, %d), enable_successive_cancellation: %d, enable_freq_domain_offset_calc: %d\n",
+         cfg->is_nr,
+         cfg->config_idx,
+         cfg->root_seq_idx,
+         cfg->zero_corr_zone,
+         cfg->freq_offset,
+         cfg->num_ra_preambles,
+         cfg->hs_flag,
+         cfg->tdd_config.sf_config,
+         cfg->tdd_config.ss_config,
+         cfg->tdd_config.configured,
+         cfg->enable_successive_cancellation,
+         cfg->enable_freq_domain_offset_calc);
   return srsran_prach_set_cell_(p, srsran_symbol_sz(nof_prb), cfg, &cfg->tdd_config);
 }
 
 int srsran_prach_init(srsran_prach_t* p, uint32_t max_N_ifft_ul)
 {
   int ret = SRSRAN_ERROR;
+  printf("Initializing PRACH, max_N_ifft_ul: %d\n", max_N_ifft_ul);
+
   if (p != NULL && max_N_ifft_ul < 2049) {
     bzero(p, sizeof(srsran_prach_t));
 

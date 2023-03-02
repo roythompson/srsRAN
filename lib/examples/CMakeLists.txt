@@ -25,9 +25,6 @@
 add_executable(synch_file synch_file.c)
 target_link_libraries(synch_file srsran_phy)
 
-add_executable(prach_detect prach_detect.c)
-target_link_libraries(prach_detect srsran_phy)
-
 #################################################################
 # These can be compiled without UHD or graphics support
 #################################################################
@@ -98,6 +95,9 @@ if(RF_FOUND)
 
   add_executable(pssch_ue pssch_ue.c)
   target_link_libraries(pssch_ue srsran_phy srsran_common srsran_rf pthread)
+
+  add_executable(prach_detect prach_detect.c)
+  target_link_libraries(prach_detect srsran_phy srsran_rf)
 
   if(SRSGUI_FOUND)
     target_link_libraries(pssch_ue ${SRSGUI_LIBRARIES})

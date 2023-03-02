@@ -106,11 +106,11 @@ void txrx::run_thread()
     double   rx_freq_hz = worker_com->get_ul_freq_hz(cc_idx);
     uint32_t rf_port    = worker_com->get_rf_port(cc_idx);
     if (cc_idx < worker_com->get_nof_carriers_lte()) {
-      srsran::console("Setting frequency: DL=%.1f Mhz, UL=%.1f MHz for cc_idx=%d nof_prb=%d\n",
+      srsran::console("Setting frequency: DL=%.1f Mhz, UL=%.1f MHz for cc_idx=%d nof_prb=%d, samp_rate: %f\n",
                       tx_freq_hz / 1e6f,
                       rx_freq_hz / 1e6f,
                       cc_idx,
-                      worker_com->get_nof_prb(cc_idx));
+                      worker_com->get_nof_prb(cc_idx), samp_rate);
     } else {
       srsran::console(
           "Setting frequency: DL=%.1f Mhz, DL_SSB=%.2f Mhz (SSB-ARFCN=%d), UL=%.1f MHz for cc_idx=%d nof_prb=%d\n",
@@ -140,6 +140,8 @@ void txrx::run_thread()
   while (running) {
     tti = TTI_ADD(tti, 1);
     logger.set_context(tti);
+
+    //srsran::console("Running with TTI: %d\n", tti);
 
     lte::sf_worker* lte_worker = nullptr;
     if (worker_com->get_nof_carriers_lte() > 0) {
@@ -185,6 +187,7 @@ void txrx::run_thread()
       }
     }
 
+    //srsran::console("Number of samples: %d\n", sf_len);
     buffer.set_nof_samples(sf_len);
     radio_h->rx_now(buffer, timestamp);
 
@@ -203,6 +206,7 @@ void txrx::run_thread()
 
     // Trigger prach worker execution
     for (uint32_t cc = 0; cc < worker_com->get_nof_carriers_lte(); cc++) {
+        //srsran::console("Running PRACH on tti: %d, cc: %d\n", tti, cc);
       prach->new_tti(cc, tti, buffer.get(worker_com->get_rf_port(cc), 0, worker_com->get_nof_ports(0)));
     }
 
