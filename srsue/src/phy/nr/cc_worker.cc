@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2023 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -246,6 +246,11 @@ bool cc_worker::decode_pdsch_dl()
   mac_dl_grant.tbs                                     = pdsch_cfg.grant.tb[0].tbs / 8;
   mac_dl_grant.tti                                     = dl_slot_cfg.idx;
   phy.stack->new_grant_dl(0, mac_dl_grant, &dl_action);
+
+  // check if RA-RNTI, if true reset HARQ buffers
+  if (pdsch_cfg.grant.rnti_type == srsran_rnti_type_ra && dl_action.tb.softbuffer != nullptr) {
+    srsran_softbuffer_rx_reset(dl_action.tb.softbuffer);
+  }
 
   // Abort if MAC says it doesn't need the TB
   if (not dl_action.tb.enabled) {

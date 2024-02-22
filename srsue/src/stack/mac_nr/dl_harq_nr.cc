@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2023 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -244,7 +244,10 @@ void dl_harq_entity_nr::dl_harq_process_nr::tb_decoded(const mac_nr_grant_dl_t& 
         logger.debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (Temporal C-RNTI) not implemented",
                      grant.tbs);
         harq_entity->demux_unit->push_pdu_temp_crnti(std::move(result.payload), grant.tti);
-        result.ack = harq_entity->mac->received_contention_id(harq_entity->demux_unit->get_received_crueid());
+        result.ack = harq_entity->demux_unit->get_uecrid_successful();
+        if (not result.ack) {
+          reset();
+        }
       } else {
         logger.debug("Delivering PDU=%d bytes to Dissassemble and Demux unit", grant.tbs);
         harq_entity->demux_unit->push_pdu(std::move(result.payload), grant.tti);

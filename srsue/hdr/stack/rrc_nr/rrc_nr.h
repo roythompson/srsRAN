@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2023 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -174,6 +174,8 @@ private:
   srslog::basic_logger&          logger;
   bool                           running = false;
   srsran::block_queue<cmd_msg_t> cmd_q;
+
+  srsran_random_t random_gen;
 
   // PHY config
   srsran::phy_cfg_nr_t phy_cfg = {};

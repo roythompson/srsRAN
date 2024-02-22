@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2022 Software Radio Systems Limited
+# Copyright 2013-2023 Software Radio Systems Limited
 #
 # This file is part of srsRAN
 #
@@ -98,6 +98,7 @@ option(FORCE_32BIT           "Add flags to force 32 bit compilation"    OFF)
 option(ENABLE_SRSLOG_TRACING "Enable event tracing using srslog"        OFF)
 option(ASSERTS_ENABLED       "Enable srsRAN asserts"                    ON)
 option(STOP_ON_WARNING       "Interrupt application on warning"         OFF)
+option(ENABLE_WERROR         "Stop compilation on errors"               ON)
 
 option(ENABLE_ALL_TEST       "Enable all unit/component test"           OFF)
 
@@ -107,12 +108,14 @@ option(ENABLE_ALL_TEST       "Enable all unit/component test"           OFF)
 # (gcc-ar, gcc-nm, ...).
 option(BUILD_WITH_LTO        "Enable LTO (experimental)"                OFF)
 
-if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
-  set(GCC_ARCH armv8-a CACHE STRING "GCC compile for specific architecture.")
-  message(STATUS "Detected aarch64 processor")
-else(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
-  set(GCC_ARCH native CACHE STRING "GCC compile for specific architecture.")
-endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
+if(NOT GCC_ARCH)
+  if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
+    set(GCC_ARCH armv8-a CACHE STRING "GCC compile for specific architecture.")
+    message(STATUS "Detected aarch64 processor")
+  else(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
+    set(GCC_ARCH native CACHE STRING "GCC compile for specific architecture.")
+  endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
+endif()
 
 # On RAM constrained (embedded) systems it may be useful to limit parallel compilation with, e.g. -DPARALLEL_COMPILE_JOBS=1
 if (PARALLEL_COMPILE_JOBS)
@@ -535,7 +538,7 @@ if("Ninja" STREQUAL ${CMAKE_GENERATOR})
 endif()
 
 # Add -Werror to C/C++ flags for newer compilers
-if(NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.0)
+if(ENABLE_WERROR AND NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.0)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 endif()
