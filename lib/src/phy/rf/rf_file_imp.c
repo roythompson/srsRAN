@@ -71,6 +71,10 @@ typedef struct {
 
 static void update_rates(rf_file_handler_t* handler, double srate);
 
+static int rf_file_open_file_opts(void** h, FILE** rx_files, FILE** tx_files, uint32_t nof_channels,
+                                  uint32_t base_srate, uint32_t rx_offset, uint32_t tx_offset,
+                                  rf_file_format_t rx_format, rf_file_format_t tx_format);
+
 void rf_file_info(char* id, const char* format, ...)
 {
 #if VERBOSE
@@ -133,11 +137,21 @@ const char* rf_file_devname(void* h)
 
 int rf_file_start_rx_stream(void* h, bool now)
 {
-  return SRSRAN_SUCCESS;
+    rf_file_handler_t* handler = (rf_file_handler_t*)h;
+    //printf("In rf_file_start_rx_stream, nof_channels: %d, start offset: %d\n",
+    //       handler->nof_channels, handler->receiver[0].start_offset);
+
+    for (int i = 0; i < handler->nof_channels; i++) {
+        uint32_t sample_sz = (handler->receiver[i].sample_format == FILERF_TYPE_FC32) ? sizeof(cf_t) : 2 * sizeof(short);
+        fseek(handler->receiver[i].file, handler->receiver[i].start_offset * sample_sz, SEEK_SET);
+    }
+
+    return SRSRAN_SUCCESS;
 }
 
 int rf_file_stop_rx_stream(void* h)
 {
+    // printf("In rf_file_stop_rx_stream\n");
   return SRSRAN_SUCCESS;
 }
 
@@ -178,13 +192,35 @@ int rf_file_open_multi(char* args, void** h, uint32_t nof_channels)
   FILE* rx_files[SRSRAN_MAX_CHANNELS] = {NULL};
   FILE* tx_files[SRSRAN_MAX_CHANNELS] = {NULL};
 
+  printf("In rf_file_open_multi, args: %s, nof_channels: %d\n",
+         args, nof_channels);
+
   if (h && nof_channels <= SRSRAN_MAX_CHANNELS) {
     uint32_t base_srate = FILE_BASERATE_DEFAULT_HZ;
+    rf_file_format_t rx_format = FILERF_TYPE_FC32;
+    rf_file_format_t tx_format = FILERF_TYPE_FC32;
+    uint32_t rx_offset = 0;
+    uint32_t tx_offset = 0;
 
     // parse args
     if (args && strlen(args)) {
+        char format[RF_PARAM_LEN] = {};
       // base_srate
       parse_uint32(args, "base_srate", -1, &base_srate);
+      parse_uint32(args, "rx_offset", 0, &rx_offset);
+      parse_uint32(args, "tx_offset", 0, &tx_offset);
+      parse_string(args, "rx_format", 0, format);
+      if (!strcmp(format, "sc16"))
+      {
+          //printf("Setting RX format to sc16\n");
+          rx_format = FILERF_TYPE_SC16;
+      }
+      parse_string(args, "tx_format", 0, format);
+      if (!strcmp(format, "sc16"))
+      {
+          //printf("Setting TX format to sc16\n");
+          tx_format = FILERF_TYPE_SC16;
+      }
     } else {
       fprintf(stderr, "[file] Error: RF device args are required for file-based no-RF module\n");
       goto clean_exit;
@@ -219,7 +255,7 @@ int rf_file_open_multi(char* args, void** h, uint32_t nof_channels)
     }
 
     // defer further initialization to open_file method
-    ret = rf_file_open_file(h, rx_files, tx_files, nof_channels, base_srate);
+    ret = rf_file_open_file_opts(h, rx_files, tx_files, nof_channels, base_srate, rx_offset, tx_offset, rx_format, tx_format);
     if (ret != SRSRAN_SUCCESS) {
       goto clean_exit;
     }
@@ -242,7 +278,9 @@ clean_exit:
   return ret;
 }
 
-int rf_file_open_file(void** h, FILE** rx_files, FILE** tx_files, uint32_t nof_channels, uint32_t base_srate)
+int rf_file_open_file_opts(void** h, FILE** rx_files, FILE** tx_files, uint32_t nof_channels,
+                           uint32_t base_srate, uint32_t rx_offset, uint32_t tx_offset,
+                           rf_file_format_t rx_format, rf_file_format_t tx_format)
 {
   int ret = SRSRAN_ERROR;
 
@@ -268,6 +306,8 @@ int rf_file_open_file(void** h, FILE** rx_files, FILE** tx_files, uint32_t nof_c
     rf_file_opts_t tx_opts = {};
     tx_opts.id             = handler->id;
     rx_opts.id             = handler->id;
+    tx_opts.start_offset   = tx_offset;
+    rx_opts.start_offset   = rx_offset;
 
     if (pthread_mutex_init(&handler->tx_config_mutex, NULL)) {
       fprintf(stderr, "Mutex init: %s\n", strerror(errno));
@@ -291,8 +331,8 @@ int rf_file_open_file(void** h, FILE** rx_files, FILE** tx_files, uint32_t nof_c
 
     // rx_format, tx_format
     // TODO: add other formats
-    rx_opts.sample_format = FILERF_TYPE_FC32;
-    tx_opts.sample_format = FILERF_TYPE_FC32;
+    rx_opts.sample_format = rx_format; //FILERF_TYPE_SC16; //FC32;
+    tx_opts.sample_format = tx_format; //FILERF_TYPE_FC32;
 
     update_rates(handler, 1.92e6);
 
@@ -349,6 +389,12 @@ int rf_file_open_file(void** h, FILE** rx_files, FILE** tx_files, uint32_t nof_c
     }
   }
   return ret;
+}
+
+int rf_file_open_file(void** h, FILE** rx_files, FILE** tx_files, uint32_t nof_channels, uint32_t base_srate)
+{
+    return rf_file_open_file_opts(h, rx_files, tx_files, nof_channels, base_srate,
+                                  0, 0, FILERF_TYPE_FC32, FILERF_TYPE_FC32);
 }
 
 int rf_file_close(void* h)
@@ -548,6 +594,8 @@ int rf_file_recv_with_time_multi(void*    h,
                                  double*  frac_secs)
 {
   int ret = SRSRAN_ERROR;
+
+  //printf("In rf_file_recv_with_time_multi, nsamples: %d\n", nsamples);
 
   if (h) {
     rf_file_handler_t* handler = (rf_file_handler_t*)h;

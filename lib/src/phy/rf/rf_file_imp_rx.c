@@ -36,12 +36,16 @@ int rf_file_rx_open(rf_file_rx_t* q, rf_file_opts_t opts)
     strncpy(q->id, opts.id, FILE_ID_STRLEN - 1);
     q->id[FILE_ID_STRLEN - 1] = '\0';
 
+    printf("Opening file, id: %s, format: %d, freq: %u\n",
+           opts.id, opts.sample_format, opts.frequency_mhz);
+
     // Assign file
     q->file = opts.file;
 
     // Configure formats
     q->sample_format = opts.sample_format;
     q->frequency_mhz = opts.frequency_mhz;
+    q->start_offset  = opts.start_offset;
 
     q->temp_buffer = srsran_vec_malloc(FILE_MAX_BUFFER_SIZE);
     if (!q->temp_buffer) {
@@ -71,9 +75,20 @@ clean_exit:
 
 int rf_file_rx_baseband(rf_file_rx_t* q, cf_t* buffer, uint32_t nsamples)
 {
-  uint32_t sample_sz = sizeof(cf_t);
+    int ret = -1;
+    uint32_t sample_sz = sizeof(cf_t);
 
-  int ret = fread(buffer, sample_sz, nsamples, q->file);
+  if (q->sample_format == FILERF_TYPE_SC16) {
+    sample_sz = 2 * sizeof(short);
+    ret = fread(q->temp_buffer_convert, sample_sz, nsamples, q->file);
+    //printf("Converting %d samples, first sample %d\n", nsamples, *((short *) q->temp_buffer_convert));
+    srsran_vec_convert_if((short*)q->temp_buffer_convert, 1.0/INT16_MAX, (float *) buffer, 2 * nsamples);
+  }
+  else
+  {
+      ret = fread(buffer, sample_sz, nsamples, q->file);
+  }
+  //printf("fread returned: %d, nsamples: %d\n", ret, nsamples);
   if (ret > 0) {
     return ret;
   } else {

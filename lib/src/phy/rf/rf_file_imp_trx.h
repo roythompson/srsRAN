@@ -66,6 +66,7 @@ typedef struct {
   cf_t*            temp_buffer;
   void*            temp_buffer_convert;
   uint32_t         frequency_mhz;
+  uint32_t         start_offset;
 } rf_file_rx_t;
 
 typedef struct {
@@ -73,6 +74,7 @@ typedef struct {
   rf_file_format_t sample_format;
   FILE*            file;
   uint32_t         frequency_mhz;
+  uint32_t         start_offset;
 } rf_file_opts_t;
 
 /*
