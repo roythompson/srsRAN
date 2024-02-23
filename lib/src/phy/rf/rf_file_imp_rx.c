@@ -23,6 +23,7 @@
 #include <srsran/phy/utils/vector.h>
 #include <stdlib.h>
 #include <string.h>
+#include <complex.h>
 
 int rf_file_rx_open(rf_file_rx_t* q, rf_file_opts_t opts)
 {
@@ -75,20 +76,21 @@ clean_exit:
 
 int rf_file_rx_baseband(rf_file_rx_t* q, cf_t* buffer, uint32_t nsamples)
 {
-    int ret = -1;
-    uint32_t sample_sz = sizeof(cf_t);
+  int ret = -1;
+  uint32_t sample_sz = sizeof(cf_t);
+
+  //printf("Reading num samples: %d, offset: %ld\n", nsamples, ftell(q->file));
 
   if (q->sample_format == FILERF_TYPE_SC16) {
     sample_sz = 2 * sizeof(short);
     ret = fread(q->temp_buffer_convert, sample_sz, nsamples, q->file);
-    //printf("Converting %d samples, first sample %d\n", nsamples, *((short *) q->temp_buffer_convert));
-    srsran_vec_convert_if((short*)q->temp_buffer_convert, 1.0/INT16_MAX, (float *) buffer, 2 * nsamples);
+    srsran_vec_convert_if((short*)q->temp_buffer_convert, INT16_MAX, (float *) buffer, 2 * nsamples);
   }
   else
   {
       ret = fread(buffer, sample_sz, nsamples, q->file);
   }
-  //printf("fread returned: %d, nsamples: %d\n", ret, nsamples);
+
   if (ret > 0) {
     return ret;
   } else {

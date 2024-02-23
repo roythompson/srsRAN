@@ -78,6 +78,9 @@ if(RF_FOUND)
   add_executable(cell_search cell_search.c)
   target_link_libraries(cell_search srsran_phy srsran_common srsran_rf)
 
+  add_executable(extract_tmsi extract_tmsi.c)
+  target_link_libraries(extract_tmsi srsran_phy srsran_common srsran_rf)
+
   add_executable(usrp_capture usrp_capture.c)
   target_link_libraries(usrp_capture srsran_phy srsran_rf)
 
